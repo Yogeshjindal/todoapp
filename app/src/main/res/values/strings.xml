@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">todoapp</string>
+    <string-array name="tag_options">
+        <item>Clean</item>
+        <item>Health</item>
+        <item>Food</item>
+        <item>Sleep</item>
+        <item>Custom</item>
+    </string-array>
+
+</resources>
