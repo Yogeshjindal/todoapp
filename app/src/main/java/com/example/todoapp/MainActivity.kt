@@ -35,13 +35,6 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            if (!alarmManager.canScheduleExactAlarms()) {
-                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                startActivity(intent) // 🔹 Redirect user to settings
-            }
-        }
 
         setupRecyclerView()
         setupWeekView()
@@ -68,12 +61,7 @@ class MainActivity : AppCompatActivity() {
                 binding.imgNoTasks.visibility = View.GONE
                 binding.txtNoTasks.visibility = View.GONE
             }
-            // ✅ Loop through tasks and schedule reminders
-            for (task in tasks) {
-                if (task.reminderTime > System.currentTimeMillis()) {
-                    viewModel.scheduleTaskReminder(this, task)
-                }
-            }
+
         }
     }
 
@@ -119,34 +107,47 @@ class MainActivity : AppCompatActivity() {
         val calendar = Calendar.getInstance()
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) // Firebase format
         val displayFormat = SimpleDateFormat("EEE\ndd", Locale.getDefault()) // Show "Tue\n18"
+        val selectedDisplayFormat = SimpleDateFormat("EEEE, MMM dd", Locale.getDefault()) // Full format for middle TextView
 
-        // Get today's date for reference
-        val today = dateFormat.format(Date())
+        val today = dateFormat.format(Date()) // Get today's date
 
+        val weekDates = mutableListOf<String>()
+
+        // Store actual dates to prevent misalignment
         for (i in dates.indices) {
             val fullDate = dateFormat.format(calendar.time)
-            dates[i].text = displayFormat.format(calendar.time) // Show "Tue\n18"
+            weekDates.add(fullDate) // Store dates in order
+            dates[i].text = displayFormat.format(calendar.time)
 
-            // Highlight the current date when the app opens
             if (fullDate == today) {
-                selectedDate = fullDate // Ensure selected date starts correctly
-                dates[i].setBackgroundResource(R.drawable.selected_date_background) // Highlight
-            }
-
-            dates[i].setOnClickListener {
-                selectedDate = fullDate // Update selected date
-                loadTasks(selectedDate)
-
-                // Reset background for all days & highlight selected one
-                dates.forEach { it.setBackgroundResource(R.drawable.default_date_background) }
+                selectedDate = fullDate
+                binding.txtSelectedDate.text = selectedDisplayFormat.format(calendar.time) // ✅ Show today's date initially
                 dates[i].setBackgroundResource(R.drawable.selected_date_background)
             }
 
             calendar.add(Calendar.DAY_OF_MONTH, 1)
         }
 
-        loadTasks(selectedDate) // Ensure tasks load for the correct selected date
+        // Add click listeners correctly
+        for (i in dates.indices) {
+            dates[i].setOnClickListener {
+                selectedDate = weekDates[i] // Correctly use stored date
+                loadTasks(selectedDate)
+
+                val selectedCalendar = Calendar.getInstance()
+                selectedCalendar.time = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(selectedDate)!!
+
+                binding.txtSelectedDate.text = selectedDisplayFormat.format(selectedCalendar.time) // ✅ Fix middle date issue
+
+                // Reset all backgrounds & highlight the selected one
+                dates.forEach { it.setBackgroundResource(R.drawable.default_date_background) }
+                dates[i].setBackgroundResource(R.drawable.selected_date_background)
+            }
+        }
+
+        loadTasks(selectedDate)
     }
+
     override fun onResume() {
         super.onResume()
        // TaskCarryoverHelper.carryOverTasks(this, viewModel) // ✅ Call the helper function

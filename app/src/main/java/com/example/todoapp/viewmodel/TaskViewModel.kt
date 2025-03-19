@@ -36,8 +36,8 @@ class TaskViewModel : ViewModel() {
             Log.e("TaskViewModel", "Error: Task ID is empty, cannot update task.")
         }
     }
-    fun scheduleTaskReminder(context: Context, task: Task) {
-        repository.scheduleTaskReminder(context, task)
-    }
+//    fun scheduleTaskReminder(context: Context, task: Task) {
+//        repository.scheduleTaskReminder(context, task)
+//    }
 
 }

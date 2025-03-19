@@ -88,7 +88,8 @@
                 android:drawableLeft="@drawable/ic_time"
                 android:padding="12dp"
                 android:background="@android:color/transparent"
-                android:layout_marginTop="10dp"/>
+                android:layout_marginTop="10dp"
+                />
 
             <!-- End Time -->
             <EditText
@@ -100,7 +101,8 @@
                 android:drawableLeft="@drawable/ic_time"
                 android:padding="12dp"
                 android:background="@android:color/transparent"
-                android:layout_marginTop="10dp"/>
+                android:layout_marginTop="10dp"
+              />
 
             <!-- Reminder Checkbox -->
             <CheckBox
@@ -120,20 +122,8 @@
                 android:drawableLeft="@drawable/ic_reminder"
                 android:padding="12dp"
                 android:background="@android:color/transparent"
-                android:layout_marginTop="10dp"/>
-<!--            <Spinner-->
-<!--                android:id="@+id/spinnerTag"-->
-<!--                android:layout_width="match_parent"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:entries="@array/tag_options" />-->
-
-<!--            <EditText-->
-<!--                android:id="@+id/etCustomTag"-->
-<!--                android:layout_width="match_parent"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:hint="Enter custom tag"-->
-<!--                android:visibility="gone"/>-->
-
+                android:layout_marginTop="10dp"
+              />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 

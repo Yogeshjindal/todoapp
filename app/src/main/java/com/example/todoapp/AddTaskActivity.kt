@@ -16,6 +16,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSnapHelper
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.bumptech.glide.Glide
 import com.example.todoapp.adapter.ColorPickerAdapter
 import com.example.todoapp.databinding.ActivityAddTaskBinding
@@ -23,9 +26,11 @@ import com.example.todoapp.model.Task
 import com.example.todoapp.repository.TaskRepository
 import com.example.todoapp.utils.ImageHelper
 import com.example.todoapp.utils.TimeUtils
+import com.example.todoapp.worker.ReminderWorker
 import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 class AddTaskActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAddTaskBinding
@@ -96,9 +101,8 @@ class AddTaskActivity : AppCompatActivity() {
     }
 
     private fun saveTask() {
-        val userId = "test_user_123"
-        val reminderTimeMillis =
-            TimeUtils.parseReminderTime(selectedDate, binding.etReminderTime.text.toString())
+        val userId ="test_user_123"
+        val reminderTimeMillis = TimeUtils.parseReminderTime(selectedDate, binding.etReminderTime.text.toString())
 
         val task = Task(
             id = UUID.randomUUID().toString(),
@@ -112,43 +116,29 @@ class AddTaskActivity : AppCompatActivity() {
             color = selectedColor
         )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = getSystemService(AlarmManager::class.java)
-            if (!alarmManager.canScheduleExactAlarms()) {
-                showAlarmPermissionDialog()
-                return
-            }
-        }
-
         repository.addTask(task) {
-            repository.scheduleTaskReminder(this, task) // ✅ Schedule alarm after saving task
+            scheduleReminder(task.taskName, reminderTimeMillis) // Schedule WorkManager task reminder
             finish()
         }
     }
 
-    private fun showAlarmPermissionDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Allow Exact Alarms")
-            .setMessage("To set task reminders, please enable exact alarms in settings.")
-            .setPositiveButton("Go to Settings") { _, _ ->
-                requestExactAlarmPermission(this)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
+    private fun scheduleReminder(taskName: String, reminderTimeMillis: Long) {
+        val delay = reminderTimeMillis - System.currentTimeMillis()
 
+        if (delay > 0) {
+            val workRequest = OneTimeWorkRequestBuilder<ReminderWorker>()
+                .setInitialDelay(delay, TimeUnit.MILLISECONDS)
+                .setInputData(
+                    workDataOf("TASK_NAME" to taskName)
+                )
+                .build()
 
-    fun requestExactAlarmPermission(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = context.getSystemService(AlarmManager::class.java)
-            if (!alarmManager.canScheduleExactAlarms()) {
-                val intent = Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                context.startActivity(intent) // Opens app settings where user can enable it manually
-            }
+            WorkManager.getInstance(this).enqueue(workRequest)
+            Toast.makeText(this, "Reminder set for $taskName", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Reminder time is in the past!", Toast.LENGTH_SHORT).show()
         }
     }
-
 
 
     private fun pickTime(textView: TextView) {
