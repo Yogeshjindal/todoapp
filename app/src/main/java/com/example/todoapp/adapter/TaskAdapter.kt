@@ -10,7 +10,9 @@ import com.example.todoapp.databinding.ItemTaskBinding
 import com.example.todoapp.model.Task
 import java.util.Collections
 
-class TaskAdapter(private val tasks: MutableList<Task>, private val onTaskChecked: (Task) -> Unit) :
+class TaskAdapter(private val tasks: MutableList<Task>, private val onTaskChecked: (Task) -> Unit,
+                  private val onTaskClicked: (Task) -> Unit // New click listener for editing
+) :
     RecyclerView.Adapter<TaskAdapter.TaskViewHolder>() {
 
     inner class TaskViewHolder(val binding: ItemTaskBinding) : RecyclerView.ViewHolder(binding.root) {
@@ -18,7 +20,9 @@ class TaskAdapter(private val tasks: MutableList<Task>, private val onTaskChecke
             binding.txtTaskName.text = task.taskName
             binding.txtTime.text = "${task.startTime} - ${task.endTime}"
             binding.chkCompleted.isChecked = task.completed
-
+            itemView.setOnClickListener {
+                onTaskClicked(task) // Handle task click
+            }
             // ✅ Apply or remove strikethrough effect
             applyStrikeThrough(binding, task.completed)
 

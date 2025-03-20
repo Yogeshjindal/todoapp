@@ -1,23 +1,18 @@
 package com.example.todoapp
 
 import android.Manifest
-import android.app.AlarmManager
-import android.content.Context
+import android.app.DatePickerDialog
 import android.content.Intent
-import android.media.audiofx.BassBoost
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.util.Log
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.example.todoapp.adapter.TaskAdapter
 import com.example.todoapp.databinding.ActivityMainBinding
-import com.example.todoapp.utils.TaskCarryoverHelper
+import com.example.todoapp.model.Task
 import com.example.todoapp.viewmodel.TaskViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -26,131 +21,123 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val viewModel: TaskViewModel by viewModels()
     private lateinit var taskAdapter: TaskAdapter
-    private var selectedDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+    private val calendar = Calendar.getInstance()
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    private val displayFormat = SimpleDateFormat("EEE\ndd", Locale.getDefault())
+    private val selectedDisplayFormat = SimpleDateFormat("EEEE, MMM dd", Locale.getDefault())
+    private var selectedDate = dateFormat.format(calendar.time)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        requestNotificationPermission()
+        setupRecyclerView()
+        setupListeners()
+        updateWeekView()
+        observeTasks()
+    }
+
+    private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
-        }
-
-        setupRecyclerView()
-        setupWeekView()
-        loadTasks(selectedDate)
-
-        viewModel.taskList.observe(this) { tasks ->
-            Log.d("MainActivity", "Tasks Loaded: ${tasks.size}") // Debugging log
-            taskAdapter.updateTasks(tasks) // ✅ Update RecyclerView dynamically
-        }
-
-        binding.fabAddTask.setOnClickListener {
-            val intent = Intent(this, AddTaskActivity::class.java)
-            intent.putExtra("SELECTED_DATE", selectedDate)
-            startActivity(intent)
-        }
-
-        viewModel.taskList.observe(this) { tasks ->
-            taskAdapter.updateTasks(tasks)
-// ✅ Show duck image & text if there are no tasks
-            if (tasks.isEmpty()) {
-                binding.imgNoTasks.visibility = View.VISIBLE
-                binding.txtNoTasks.visibility = View.VISIBLE
-            } else {
-                binding.imgNoTasks.visibility = View.GONE
-                binding.txtNoTasks.visibility = View.GONE
-            }
-
         }
     }
 
     private fun setupRecyclerView() {
-        taskAdapter = TaskAdapter(mutableListOf()) { updatedTask ->
-            viewModel.updateTaskCompletion(updatedTask) // ✅ Save changes to Firestore
+        taskAdapter = TaskAdapter(mutableListOf(),
+            { updatedTask -> viewModel.updateTaskCompletion(updatedTask) },
+            { task -> openTaskEditor(task) }
+        )
+        binding.recyclerView.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = taskAdapter
         }
-        binding.recyclerView.layoutManager = LinearLayoutManager(this)
-        binding.recyclerView.adapter = taskAdapter
+    }
 
-        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
-        ) {
-            override fun onMove(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder,
-                target: RecyclerView.ViewHolder
-            ): Boolean {
-                val fromPosition = viewHolder.adapterPosition
-                val toPosition = target.adapterPosition
-                taskAdapter.moveItem(fromPosition, toPosition) // ✅ Swap positions
-                return true
-            }
+    private fun setupListeners() {
+        binding.fabAddTask.setOnClickListener { openTaskEditor() }
+        binding.txtSelectedDate.setOnClickListener { showDatePicker() }
+        binding.btnBack.setOnClickListener { shiftWeek(-7) }
+        binding.btnNext.setOnClickListener { shiftWeek(7) }
+    }
 
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                // No swipe action needed
-            }
-        })
-
-        itemTouchHelper.attachToRecyclerView(binding.recyclerView)
+    private fun observeTasks() {
+        viewModel.taskList.observe(this) { tasks ->
+            taskAdapter.updateTasks(tasks)
+            toggleNoTasksView(tasks.isEmpty())
+        }
+        loadTasks(selectedDate)
     }
 
     private fun loadTasks(date: String) {
-        Log.d("MainActivity", "Loading tasks for date: $date") // Debugging log
+        Log.d("MainActivity", "Loading tasks for date: $date")
         viewModel.loadTasks(date)
     }
-    private fun setupWeekView() {
+
+    private fun updateWeekView() {
         val dates = listOf(
             binding.txtDay1, binding.txtDay2, binding.txtDay3, binding.txtDay4,
             binding.txtDay5, binding.txtDay6, binding.txtDay7
         )
-
-        val calendar = Calendar.getInstance()
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) // Firebase format
-        val displayFormat = SimpleDateFormat("EEE\ndd", Locale.getDefault()) // Show "Tue\n18"
-        val selectedDisplayFormat = SimpleDateFormat("EEEE, MMM dd", Locale.getDefault()) // Full format for middle TextView
-
-        val today = dateFormat.format(Date()) // Get today's date
-
         val weekDates = mutableListOf<String>()
 
-        // Store actual dates to prevent misalignment
-        for (i in dates.indices) {
+        dates.forEachIndexed { index, textView ->
             val fullDate = dateFormat.format(calendar.time)
-            weekDates.add(fullDate) // Store dates in order
-            dates[i].text = displayFormat.format(calendar.time)
-
-            if (fullDate == today) {
-                selectedDate = fullDate
-                binding.txtSelectedDate.text = selectedDisplayFormat.format(calendar.time) // ✅ Show today's date initially
-                dates[i].setBackgroundResource(R.drawable.selected_date_background)
-            }
-
+            weekDates.add(fullDate)
+            textView.text = displayFormat.format(calendar.time)
+            textView.setBackgroundResource(if (fullDate == selectedDate) R.drawable.selected_date_background else R.drawable.default_date_background)
+            textView.setOnClickListener { selectDate(fullDate, weekDates, dates) }
             calendar.add(Calendar.DAY_OF_MONTH, 1)
         }
 
-        // Add click listeners correctly
-        for (i in dates.indices) {
-            dates[i].setOnClickListener {
-                selectedDate = weekDates[i] // Correctly use stored date
-                loadTasks(selectedDate)
+        calendar.time = dateFormat.parse(weekDates[0])!!
+        binding.txtSelectedDate.text = selectedDisplayFormat.format(dateFormat.parse(selectedDate)!!)
+    }
 
-                val selectedCalendar = Calendar.getInstance()
-                selectedCalendar.time = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(selectedDate)!!
-
-                binding.txtSelectedDate.text = selectedDisplayFormat.format(selectedCalendar.time) // ✅ Fix middle date issue
-
-                // Reset all backgrounds & highlight the selected one
-                dates.forEach { it.setBackgroundResource(R.drawable.default_date_background) }
-                dates[i].setBackgroundResource(R.drawable.selected_date_background)
-            }
-        }
-
+    private fun selectDate(date: String, weekDates: List<String>, dateViews: List<View>) {
+        selectedDate = date
         loadTasks(selectedDate)
+        binding.txtSelectedDate.text = selectedDisplayFormat.format(dateFormat.parse(selectedDate)!!)
+        dateViews.forEach { it.setBackgroundResource(R.drawable.default_date_background) }
+        dateViews[weekDates.indexOf(date)].setBackgroundResource(R.drawable.selected_date_background)
+    }
+
+    private fun shiftWeek(days: Int) {
+        calendar.add(Calendar.DAY_OF_MONTH, days)
+        updateWeekView()
+    }
+
+    private fun showDatePicker() {
+        DatePickerDialog(this, { _, year, month, dayOfMonth ->
+            calendar.set(year, month, dayOfMonth)
+            selectedDate = dateFormat.format(calendar.time)
+            loadTasks(selectedDate)
+            updateWeekView()
+        }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show()
+    }
+
+    private fun openTaskEditor(task: Task? = null) {
+        val intent = Intent(this, AddTaskActivity::class.java).apply {
+            task?.let {
+                putExtra("TASK_ID", it.id)
+                putExtra("TASK_NAME", it.taskName)
+                putExtra("TASK_DATE", it.date)
+                putExtra("TASK_START_TIME", it.startTime)
+                putExtra("TASK_END_TIME", it.endTime)
+            } ?: putExtra("SELECTED_DATE", selectedDate)
+        }
+        startActivity(intent)
+    }
+
+    private fun toggleNoTasksView(isEmpty: Boolean) {
+        binding.imgNoTasks.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        binding.txtNoTasks.visibility = if (isEmpty) View.VISIBLE else View.GONE
     }
 
     override fun onResume() {
         super.onResume()
-       // TaskCarryoverHelper.carryOverTasks(this, viewModel) // ✅ Call the helper function
-        loadTasks(selectedDate) // ✅ Reload tasks every time the activity is resumed
+        loadTasks(selectedDate)
     }
 }

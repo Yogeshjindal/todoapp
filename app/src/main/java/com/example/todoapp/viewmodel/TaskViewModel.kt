@@ -7,7 +7,9 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.todoapp.model.Task
 import com.example.todoapp.repository.TaskRepository
+import com.google.firebase.Firebase
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.firestore
 import java.util.UUID
 
 class TaskViewModel : ViewModel() {
@@ -36,8 +38,33 @@ class TaskViewModel : ViewModel() {
             Log.e("TaskViewModel", "Error: Task ID is empty, cannot update task.")
         }
     }
-//    fun scheduleTaskReminder(context: Context, task: Task) {
-//        repository.scheduleTaskReminder(context, task)
-//    }
+    fun updateTask(task: Task) {
+        val taskRef = Firebase.firestore.collection("tasks").document(task.id)
+
+        val updatedFields = mapOf(
+            "taskName" to task.taskName,
+            "startTime" to task.startTime,
+            "endTime" to task.endTime,
+            "date" to task.date,
+            "reminderTime" to task.reminderTime,
+            "completed" to task.completed,
+            "imageUrl" to task.imageUrl,
+            "color" to task.color
+        )
+
+        taskRef.update(updatedFields)
+            .addOnSuccessListener {
+                Log.d("Firestore", "Task updated successfully")
+            }
+            .addOnFailureListener { e ->
+                Log.e("Firestore", "Error updating task", e)
+            }
+    }
+
+
+    fun deleteTask(taskId: String) {
+        Firebase.firestore.collection("tasks").document(taskId).delete()
+    }
+
 
 }

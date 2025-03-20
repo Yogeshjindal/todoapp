@@ -32,10 +32,10 @@
     android:padding="8dp" />
 
     <ImageButton
-        android:id="@+id/btnMenu"
+        android:id="@+id/btnNext"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@android:drawable/ic_menu_more"
+        android:src="@android:drawable/ic_media_next"
         android:background="@null"
         android:contentDescription="Menu"
         app:layout_constraintEnd_toEndOf="parent"
