@@ -140,7 +140,7 @@ class AddTaskActivity : AppCompatActivity() {
                 scheduleReminder(task.taskName, reminderTimeMillis)
             }
         }
-        finish()
+         finish()
     }
 
     private fun deleteTask() {

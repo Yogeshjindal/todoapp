@@ -14,7 +14,7 @@
         android:layout_height="wrap_content"
         android:src="@android:drawable/ic_media_previous"
         android:background="@null"
-        android:contentDescription="Back"
+        android:contentDescription="Back "
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         android:padding="8dp" />

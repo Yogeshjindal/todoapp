@@ -40,7 +40,6 @@ class TaskViewModel : ViewModel() {
     }
     fun updateTask(task: Task) {
         val taskRef = Firebase.firestore.collection("tasks").document(task.id)
-
         val updatedFields = mapOf(
             "taskName" to task.taskName,
             "startTime" to task.startTime,
@@ -63,6 +62,7 @@ class TaskViewModel : ViewModel() {
 
 
     fun deleteTask(taskId: String) {
+
         Firebase.firestore.collection("tasks").document(taskId).delete()
     }
 

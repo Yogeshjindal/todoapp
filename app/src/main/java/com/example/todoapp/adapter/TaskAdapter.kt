@@ -69,10 +69,10 @@ class TaskAdapter(private val tasks: MutableList<Task>, private val onTaskChecke
 
 
     // ✅ Function to swap items
-    fun moveItem(fromPosition: Int, toPosition: Int) {
-        Collections.swap(tasks, fromPosition, toPosition)
-        notifyItemMoved(fromPosition, toPosition)
-    }
+//    fun moveItem(fromPosition: Int, toPosition: Int) {
+//        Collections.swap(tasks, fromPosition, toPosition)
+//        notifyItemMoved(fromPosition, toPosition)
+//    }
 
     // ✅ Update tasks when new data arrives
     fun updateTasks(newTasks: List<Task>) {

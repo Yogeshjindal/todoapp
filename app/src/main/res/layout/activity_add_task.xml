@@ -13,7 +13,7 @@
         android:layout_width="38dp"
         android:layout_height="38dp"
         android:src="@android:drawable/ic_menu_close_clear_cancel"
-        android:contentDescription="Close"
+        android:contentDescription="Close "
         android:background="?attr/selectableItemBackgroundBorderless"
         android:padding="8dp"
         app:tint="@android:color/black"

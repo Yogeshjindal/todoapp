@@ -110,6 +110,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showDatePicker() {
+
         DatePickerDialog(this, { _, year, month, dayOfMonth ->
             calendar.set(year, month, dayOfMonth)
             selectedDate = dateFormat.format(calendar.time)
